@@ -1,163 +1,275 @@
 # Fallout 4 Body & Physics Converter
 
-> **Interim README (0.6.0, "Body Architecture Foundation").** This is *not* the final end-user manual. The final
-> manual will be written only after: (1) the Fusion Girl → CBBE → CBBE 3BBB route is implemented; (2) a real Fusion
-> Girl package is converted end-to-end through the GUI; (3) the result is built and verified; (4) it is tested in
-> Fallout 4; (5) a regression conversion of a known CBBE package through the GUI proves CBBE → CBBE 3BBB still works.
-> Nothing below claims a route or feature that has not passed its real acceptance test.
+Version **0.6.1** · Windows · for Fallout 4 with Mod Organizer 2, BodySlide and Outfit Studio
 
-Formerly **CBBE3BBBConverter**. The internal names stay on purpose so existing installations keep working: the
-folder `CBBE3BBBConverter`, `run_batch.bat` / `run_gui.bat`, the Python package `cbbe3bbb`, converter profiles
-(e.g. `Default` — not the MO2 profile, e.g. `Fix F`), the output mod **CBBE 3BBB Auto Conversions**, its BodySlide
-groups `CBBE 3BBB Auto Conversions - <package>` and the manifest/report formats.
+---
 
-## Body routes (0.6.0)
+## 1. What it is
 
-| Source body → Target body | Status |
+Fallout 4 Body & Physics Converter is a Windows tool for BodySlide outfit packages. It looks at every outfit
+project in a package and converts the suitable ones to **CBBE 3BBB physics**: breast, butt and thigh physics bones
+for physics mods such as OCBP.
+
+- Your **source mods are never modified**. The tool reads them and works on copies.
+- Converted projects go into a **separate MO2 mod**, `CBBE 3BBB Auto Conversions`, as new BodySlide projects named
+  `<original> - 3BBB AUTO`. Each package gets its own BodySlide group, `CBBE 3BBB Auto Conversions - <package>`.
+- It drives **Outfit Studio** on its own: the window opens and runs by itself, and you don't click anything in it.
+- Every converted outfit goes through **strict validation**. A result that cannot be verified is rejected and the
+  original stays as it is.
+- You build the converted outfits in **BodySlide** yourself. The tool tells you exactly what to build, and afterwards
+  it can **check the build**.
+
+## 2. Current support
+
+| Source body → target | Status |
 | --- | --- |
-| **CBBE → CBBE 3BBB** | **Production** — the proven backend (Clothes Pack 5, Raider Punk, Vtaw Wardrobe 10; unattended Outfit Studio accepted in 0.5.3) |
-| CBBE 3BBB → CBBE 3BBB | already compatible (kept as is) |
-| TWB 3BBB → CBBE 3BBB | already compatible (kept as is) |
-| TWB → CBBE 3BBB | converted as before 0.6.0 (TWB treated as CBBE-derived geometry); not separately accepted in game |
-| **Fusion Girl → CBBE → CBBE 3BBB** | **recognised, not implemented yet** — Fusion Girl outfits are detected and listed under *Needs attention*; nothing is converted |
-| BodyTalk / Male → CBBE 3BBB | not supported |
-| Unknown → CBBE 3BBB | never converted automatically |
+| **CBBE → CBBE 3BBB** | **Supported.** This is the main, production route. |
+| CBBE 3BBB (already converted) | **Already compatible.** Recognised and left as it is. |
+| TWB 3BBB, or 3BBB on a body the tool cannot name | **Already compatible.** Left as it is. |
+| TWB (without 3BBB) → CBBE 3BBB | Converted the same way as CBBE outfits, because TWB is CBBE-derived. This route has not been accepted separately in game. |
+| **Fusion Girl** | **Detected, but not converted.** Fusion Girl → CBBE conversion is not implemented. These outfits are listed under *Needs attention*. |
+| BodyTalk / male bodies | Not supported. |
+| Unknown or undetermined body | Never converted automatically. |
+| Outfits with their own built-in body | Usually *Needs attention* ("contains its own body"): convert them by hand. |
 
-**Source Body** defaults to **Auto Detect** (each outfit's body is detected). Choosing a source explicitly only
-*confirms* the detection: an outfit detected as another body is not converted. **Target Body** is CBBE 3BBB.
-`run_batch.bat body-routes` lists the routes; `convert-package` / `analyze-package` accept the optional
-`--source-body auto|cbbe|fusion_girl|twb` and `--target-body cbbe_3bbb` (defaults reproduce the earlier behaviour,
-so existing commands work unchanged).
+Not every outfit converts. Accessories, belts, holsters, boots, loose or layered parts and some full-body
+outfits are deliberately left alone or end up under *Needs attention*. See §7 and §10.
 
-Compatibility promise: existing CBBE workflows, commands and generated projects remain supported.
+## 3. Requirements
 
-## Development history
+- **Windows 10/11** and **Fallout 4**.
+- **Mod Organizer 2.** Every tested workflow uses MO2: the tool reads your MO2 instance and profile, the output mod is an
+  MO2 mod, and BodySlide is started through MO2.
+- **CBBE** and **CBBE 3BBB Body** installed in MO2. The tool reads the installed *CBBE 3BBB Body* BodySlide project and
+  uses it as the target body.
+- **BodySlide and Outfit Studio** installed in MO2 as usual, for building.
+- A separate copy of **BodySlide and Outfit Studio 5.8.x**, extracted to its own folder outside MO2 and the game
+  (for example `T:\Fallout 4 Tools\BodySlide 5.8.2`). The tool needs Outfit Studio 5.8 or newer; 5.8.2 is the
+  tested version. It makes a private copy for itself and never changes your installed BodySlide.
+- A **3BBB physics framework** in game, such as OCBP with a 3BBB preset. The converter does not install or
+  configure in-game physics.
+- **Python 3.10 or newer**, used only to run the tool. `setup_env.bat` creates a private `.venv` inside the tool folder
+  with numpy, scipy and PySide6.
 
+## 4. Installation
 
-**Analysis never modifies mods.** Conversions use Outfit Studio 5.8+'s own automation and write only into a generated output mod, and only after validation has passed:
+1. Put the tool folder anywhere **outside** the game folder, the MO2 folder and the MO2 mods folder (the tool refuses
+   to run from inside them), for example:
+   `T:\Fallout 4 Tools\Fallout 4 Body & Physics Converter`
+2. Run `setup_env.bat` once. It creates `.venv` and installs the dependencies. Nothing outside the folder changes.
+3. Start the tool with `run_gui.bat`.
+4. First launch: click **Settings / Advanced** and set:
+   - your **Fallout 4** folder;
+   - your **MO2** folder (the one that contains `ModOrganizer.ini`);
+   - the **MO2 profile**. If you leave it empty, the profile currently selected in MO2 is used;
+   - the **Outfit Studio 5.8+** folder from §3.
 
-* Phase 2: the accepted single-project path (`docs/CONVERSION.md`).
-* Phase 3 (0.3.0): controlled **package/batch** conversion. Batch Preview, Dry Run, Run Batch, independent per-project validation, and an explicit commit of the successful projects only (`docs/BATCH.md`).
-* Phase 3.1 (0.3.1): opt-in, default-OFF **embedded CBBE → CBBE-3BBB body replacement** for outfits that build a CBBE body into their mesh (`docs/BATCH.md` §8).
-* 0.3.2: read-only **post-build check** `verify-build` and the **in-game item** that uses each mesh (`docs/BATCH.md` §9).
-* 0.4.0: **two source paths**.
-  * A. BodySlide-project conversion, as above.
-  * B. **Direct game-NIF** analysis for packages that ship built meshes and a plugin but no BodySlide projects. It is read-only and opt-in: `analyze-package --allow-direct-nif` (`docs/BATCH.md` §10). Many older Fallout 4 clothing packages are distributed this way.
-* 0.4.1: the **controlled Direct-NIF write path** for explicitly selected HIGH-confidence meshes: `plan-direct-batch` → `convert-direct-batch` → `commit-direct-batch` → `verify-direct-build` (`docs/BATCH.md` §11). The converted game mesh goes to the output mod at the same game path, so MO2 overrides the source without any plugin change. No mass conversion, no automatic commit.
-* 0.4.2: Direct-NIF validation checks every vertex attribute on its own (positions, UVs, normals, tangents/bitangents, colors, eye/landscape data, unknown bytes, topology), so a failure names exactly what changed. Finding from the first real Windows batch: Outfit Studio 5.8.2's interactive session recomputes seam normals (`docs/RESEARCH.md` §12).
-* 0.4.3: **post-export restoration**. In Direct-NIF mode Outfit Studio is only the skinning backend. The converter checks the raw export: only the intended skinning, plus Outfit Studio's normal/tangent regeneration on duplicated seam vertices, may differ. It then restores every other vertex byte from the source and validates the final file strictly (`docs/BATCH.md` §11).
-* 0.5.0 (this version): **mass conversion for normal users**. Select a mod, press **Convert** (Safe, or Convert All Possible), wait, build in BodySlide.
-  * Every outfit is validated on its own. An outfit that cannot be converted is listed by name, its original stays unchanged, and the batch continues.
-  * Crashes and interruptions resume where they stopped.
-  * Includes the fix for the CP5 bodysuit regression (`docs/BATCH.md` §12).
+   These settings are saved as a **converter profile** (for example `Default`) in `config\profiles.json`. Then click
+   **Detect again**: the main window shows Game, Mod Organizer, Reference body (CBBE 3BBB), Output and Outfit Studio
+   with ✓ marks.
 
-A standalone Windows tool for Fallout 4 that scans a BodySlide library, whether it is installed through Mod Organizer 2 or directly in the game's `Data` folder. For every BodySlide project (slider set) it decides whether the outfit needs a **CBBE → CBBE 3BBB** physics weight conversion, is already converted, or should be left alone.
+The tool keeps all its own files inside its folder:
 
-Phase 1 is read-only. It never writes into the game folder, the MO2 instance, any mod, any BodySlide project, any NIF/OSP/TRI or any source asset. The only things it writes are its own files inside the tool folder:
-
-| Folder | Content |
+| Folder | Contents |
 | --- | --- |
-| `config/profiles.json` | installation profiles (local JSON, no registry) |
-| `reports/latest.json`, `latest.csv`, `latest.html` | the latest analysis; `reports/history/` keeps older JSON runs |
-| `logs/app.log` | rotating log, with user-profile paths redacted |
-| `cache/analysis.sqlite` | per-project analysis cache, keyed by file size, mtime and settings |
+| `config` | profiles |
+| `work` | conversion workspaces and checkpoints |
+| `runtime` | the private Outfit Studio copy |
+| `reports` | analysis, package and build reports |
+| `logs` | application log |
+| `cache` | analysis cache |
 
-The tool refuses to run if its own folder sits inside the game, MO2 or mods folder.
+The folder can be renamed or moved: launchers and paths are relative to the folder, and saved paths that pointed
+inside the old folder are updated automatically.
 
-Conversion (Phase 2 milestone) is described in `docs/CONVERSION.md`: Dry Run, Convert, validation, manifest, and the manual BodySlide build. Outfit Studio 5.8.0–5.8.2 has an upstream bug: headless *CopyBoneWeights* does nothing. For those versions the tool therefore opens Outfit Studio's window, and you press *Execute* once (see `docs/UPSTREAM_ISSUE.md`).
+## 5. Quick start
 
-## Quick start (Windows)
+1. Close BodySlide and Outfit Studio, then start `run_gui.bat`.
+2. **Choose outfit mod**: pick the package, for example *Clothes Pack 4 by DonEb14n*.
+3. Leave **Source Body = Auto Detect** and **Target Body = CBBE 3BBB**.
+4. Click **Analyze** and review the counts: *Ready to convert*, *Will try in All Possible*, *Already compatible*,
+   *No conversion needed*, *Cannot safely process*. The detected bodies and routes are shown too.
+5. Click **Convert Safe** or **Convert All Possible** (§6). Outfit Studio opens and works on its own; don't use it
+   while it runs. Large packages run in several sessions.
+6. Read the result: **Completed**, **No conversion needed**, **Needs attention / original kept**. **View Problems**
+   shows the reason for each outfit, including the strict check that failed.
+7. Click **Build Converted Outfits** and follow the dialog (§9). In short: in BodySlide, select the exact group
+   `CBBE 3BBB Auto Conversions - <package>`, choose your preset, turn **Build Morphs ON**, then **Batch Build** →
+   **Build**.
+8. Back in the tool, click **Check the build**.
+9. Test the outfits in game. If one has no physics in game, report it with **Report in-game problem…**.
+
+## 6. Safe vs. Convert All Possible
+
+- **Safe** converts only the outfits the analysis rates as high-confidence fits.
+- **Convert All Possible** also tries lower-confidence candidates that can still be validated.
+
+All Possible does **not** mean "force everything". Both modes use the same strict validation. A result that fails
+validation is rejected, nothing is installed for it, and the original is kept.
+
+## 7. What the results mean
+
+| Result | Meaning |
+| --- | --- |
+| **Completed** | Converted, validated and installed into `CBBE 3BBB Auto Conversions`. |
+| **Already compatible** | Already carries 3BBB physics (or is a native 3BBB project). Nothing to do. |
+| **No conversion needed** | No breast, butt or thigh physics area under this item (gloves, boots, jewellery…). |
+| **Needs attention / original kept** | Not converted. The original is untouched. Common reasons are below. |
+
+Common *Needs attention* reasons:
+
+- **physics conversion unavailable**: the automatic weight transfer would not be safe for part of the outfit.
+  Typical causes are parts too far from the body, belts, harnesses, holsters or bags.
+- **physics could not be verified**: the converted result could not be proven correct, so it was rejected.
+- **expected physics bones missing (rejected)**: part of the outfit did not get all the physics bones the strict
+  validation requires.
+- **contains its own body (needs manual conversion)**: the outfit includes a body mesh. It is not converted
+  automatically.
+- **conversion result rejected**: the converted result did not pass a strict structural check, for example a changed
+  shape or an unplanned extra part.
+- **already has its own physics weights (kept as is)**: existing 3BBB-style weights are never overwritten.
+- **Made for Fusion Girl / made for another body**: not a CBBE outfit (§2).
+- **does not match the chosen source body**: you chose a Source Body other than *Auto Detect*, and this outfit was
+  detected as another body. A chosen source only *confirms* the detection; it never reinterprets an outfit.
+- **not tried in Safe mode**: *Convert All Possible* may try it.
+
+Any outfit under *Needs attention* is safe to leave as it is. You can convert it by hand or use an author-made
+conversion.
+
+## 8. Output safety
+
+- Source mods are read-only for the tool; it checks this with SHA-256 hashes before and after each conversion.
+- Everything generated goes into `CBBE 3BBB Auto Conversions` with a `manifest.json` that lists every file the tool
+  owns. Files it did not create are never overwritten, including a generated project with no manifest record.
+- Each package gets an exact BodySlide group, `CBBE 3BBB Auto Conversions - <package>`, containing only the
+  generated `- 3BBB AUTO` projects.
+- Generated and original projects build the **same game mesh files**. Build **only the generated AUTO group**, and do
+  not batch-build the original package afterwards: that would overwrite the converted meshes.
+
+## 9. Building in BodySlide
+
+**Build Converted Outfits** shows the exact group, the preset and Build Morphs, and offers:
+
+- **Open BodySlide (via Mod Organizer 2)**. MO2 may first show its usual dialogs. If BodySlide does not come to the
+  front, look for it on the taskbar.
+- **Copy group name**.
+- **Check the build**.
+
+In BodySlide:
+
+1. Select the group `CBBE 3BBB Auto Conversions - <package>` in the **group filter**. Don't rely on the text search
+   alone, because it also shows the original projects.
+2. Choose the CBBE body preset you play with. *CBBE Curvy* was used during testing; any CBBE preset works.
+3. Turn **Build Morphs ON**.
+4. Click **Batch Build** → **Build**. If BodySlide asks which project should build a file, choose the **- 3BBB AUTO**
+   one.
+
+Then click **Check the build**, or run `verify-package-build`. Each converted outfit is reported as one of:
+
+| Status | Meaning |
+| --- | --- |
+| built correctly | The game mesh MO2 serves was built after the conversion, and its bones and weights match the generated project. A file simply existing is not enough. |
+| not built yet | No built mesh was found. |
+| built before the conversion or from the original project | Rebuild the AUTO group. |
+| built mesh does not match | Rebuild the AUTO group. |
+| could not be checked | A file is missing or unreadable. |
+
+## 10. Limitations
+
+- Not every clothing item needs physics. Accessories, belts, holsters, boots and similar items often (correctly)
+  stay unconverted.
+- Outfits with a built-in body usually need a manual conversion.
+- Strict validation can reject output that looks fine. That is intentional: the original is kept.
+- Some package structures cannot be converted safely by automation.
+- For some packages a ready-made author conversion is the better choice. Example: *Vtaw Wardrobe 6 - 3BBB (CBBE)
+  Conversion* with its own group *Vtaw Wardrobe 6*. Don't build both conversions of the same outfits.
+- Fusion Girl conversion is not implemented. Male / BodyTalk conversion is not supported.
+
+## 11. Troubleshooting
+
+- **BodySlide shows both the original and the AUTO projects.** Select the exact group `CBBE 3BBB Auto Conversions -
+  <package>` in the group filter instead of searching by outfit name.
+- **MO2 shows a dialog when BodySlide starts** (secondary process, Steam). This is normal MO2 behaviour; answer it as
+  usual.
+- **An outfit was rejected.** Open **View Problems** (tick *Technical Details* for the full list of checks). The
+  original is safe; nothing was installed for that outfit.
+- **The game still shows the old mesh.**
+  - Make sure `CBBE 3BBB Auto Conversions` is enabled in MO2.
+  - Check MO2 mod priority: another mod may provide the same mesh.
+  - Check that no original project was built afterwards over the same output path.
+  - Run **Check the build**: it names the mod whose mesh the game actually loads.
+- **NPCs wear unexpected outfits.** Outfit distribution mods (leveled-list patchers and similar) decide what NPCs wear.
+  That is outside this tool.
+- **Outfit Studio could not continue on its own.** The tool stops safely and offers *Retry automatically*, *Continue
+  manually* or *Stop for now*. Interrupted packages can be resumed with **Resume**.
+
+## 12. Real-world validation
+
+The converter has been run against real installed packages through the GUI and the command line. Mixed or unsupported
+outfits in them were deliberately preserved:
+
+- Clothes Pack 4 by DonEb14n: 41 completed, 9 not needed, 3 need attention
+- Clothes Pack 5 CBBE BodySlide: the vast majority works in game
+- Vtaw Overalls: 5 / 1 / 2
+- Vtaw Utility Pack 1: 22 / 4 / 11
+- Vtaw Wardrobe 4: 23 / 11 / 4. The generated group contained exactly the 23 AUTO projects.
+- Vtaw Wardrobe 5: 60 / 16 / 22
+- Vtaw Wardrobe 6: 73 / 14 / 11, used as a stress test
+- Vtaw Wardrobe 10: fully unattended Outfit Studio, including cloth physics data
+- Raider Punk: the first in-game accepted conversions
+
+This shows how the tool behaves on real packages. It is not a promise that every project in every package converts.
+
+## 13. Command line
+
+`run_batch.bat` runs the same engine as the GUI. Two profile options mean different things:
+
+- `--profile NAME` is the **converter profile** (for example `Default`, saved by the GUI).
+- `--mo2-profile NAME` is the **Mod Organizer 2 profile** (for example `Fix F`).
 
 ```bat
-cd "T:\Fallout 4 Tools\CBBE3BBBConverter"
-setup_env.bat          :: once: creates .venv and installs numpy, scipy, PySide6, pytest
-run_gui.bat            :: start the GUI
-run_tests.bat          :: run the test suite
-run_analyze.bat --mo2 "T:\MO_Main _ baseCBBE"          :: headless analysis → reports\latest.*
-run_convert.bat --profile NAME --project "MM69 Raider Punk Top - CBBE"        :: Dry Run (writes nothing)
-run_convert.bat --profile NAME --project "MM69 Raider Punk Top - CBBE" --yes  :: convert
-run_revalidate.bat --profile NAME --workspace "work\conversions\<id>" [--commit] :: re-check a finished run (no Outfit Studio rerun)
-run_batch.bat analyze-package --profile NAME --package "<MO2 mod>"                :: Phase 3 Batch Preview (writes nothing to mods)
-run_batch.bat convert-package --profile NAME --package "<MO2 mod>" [--mode all-possible] --yes :: 0.5.0 one step: convert + validate + install
-run_batch.bat plan-direct-batch --profile NAME --package "<MO2 mod>" --allow-direct-nif --select "<mesh>.nif" :: 0.4.1 Direct-NIF PLAN (read-only)
+run_batch.bat --help
+run_batch.bat --version
+run_batch.bat body-routes
+run_batch.bat analyze-package      --profile Default --package "Clothes Pack 4 by DonEb14n" [--details]
+                                   [--source-body auto|cbbe|fusion_girl|twb] [--target-body cbbe_3bbb]
+run_batch.bat convert-package      --profile Default --package "Clothes Pack 4 by DonEb14n" --yes
+                                   [--mode safe|all-possible] [--no-commit] [--max-per-session N]
+                                   [--source-body auto|cbbe|fusion_girl|twb] [--target-body cbbe_3bbb]
+                                   [--level normal|detailed|debug] [--mo2-profile "Fix F"]
+run_batch.bat resume-batch         --profile Default --batch <batch id> --yes [--commit] [--manual | --unattended]
+run_batch.bat package-report       --profile Default --batch <batch id> [--verify]
+run_batch.bat verify-package-build --profile Default --package "Clothes Pack 4 by DonEb14n"
+run_batch.bat report-runtime-issue --profile Default --project "<project or generated project>" --state FAIL|PARTIAL|PASS [--note "..."]
+run_batch.bat export-diagnostics   --profile Default [--batch <batch id>] [--out <zip>]
 ```
 
-`setup_env.bat` looks for Python 3.10+ in this order: `%CBBE3BBB_PYTHON%`, `%USERPROFILE%\MiniConda3`, `%LOCALAPPDATA%\miniconda3`, `%ProgramData%\miniconda3`, `py -3`, then `python`. Everything it installs goes into `.venv` inside the tool folder.
+`--source-body` defaults to `auto` and `--target-body` to `cbbe_3bbb`. Choosing `fusion_girl` is refused before
+anything starts, because that route is not implemented. `convert-package` needs `--yes`; with `--no-commit` it
+converts and validates without installing. Run `run_batch.bat <command> --help` to see every option.
 
-Manual equivalent:
+## 14. Safety and recovery
 
-```bat
-python -m venv .venv
-.venv\Scripts\python -m pip install -r requirements-dev.txt
-set PYTHONPATH=%CD%\src
-.venv\Scripts\python -m cbbe3bbb gui
-.venv\Scripts\python -m cbbe3bbb detect  --mo2 "T:\MO_Main _ baseCBBE"
-.venv\Scripts\python -m cbbe3bbb analyze --mo2 "T:\MO_Main _ baseCBBE" --include-disabled
-.venv\Scripts\python -m pytest -q
-```
+- **Originals are never modified.** The generated output lives only in `CBBE 3BBB Auto Conversions`.
+- **To stop using the conversions:**
+  1. Disable `CBBE 3BBB Auto Conversions` in MO2.
+  2. Remove the meshes BodySlide built from the AUTO group. They are wherever your BodySlide build writes, usually
+     MO2's *Overwrite*. Alternatively, rebuild the original projects.
+  3. Do not delete individual files inside the output mod by hand; its `manifest.json` describes what it contains.
+- **Interruptions.** Conversions are checkpointed per project. **Resume** in the GUI (or `resume-batch`) continues
+  with the unfinished outfits.
+- **Logs and diagnostics:**
+  - `logs\app.log`;
+  - package reports in `reports\packages`;
+  - build checks in `reports\builds`;
+  - **Export Diagnostic Report** (or `export-diagnostics`) writes one ZIP with user paths anonymised.
+- **Back up** your MO2 profile and `CBBE 3BBB Auto Conversions` before large conversions. When updating the tool,
+  replace the program files and keep `config`, `work` and `reports`.
 
-## Using the GUI
+## 15. Version and status
 
-`run_gui.bat` opens the simple window (0.5.0):
+**0.6.1.** CBBE → CBBE 3BBB is the production route; the other routes are as listed in §2. Fusion Girl is detected
+but not converted.
 
-1. The status rows show Fallout 4, Mod Organizer 2, the CBBE 3BBB body, the output mod (enabled in MO2 or not) and Outfit Studio.
-2. Choose the outfit mod. *Source body* is detected (Auto-detect → CBBE), *Target body* is CBBE 3BBB; other bodies are listed as "not implemented".
-3. Choose **Safe** (only what can be verified with high confidence) or **Convert All Possible** (also tries uncertain outfits; a warning explains what that means).
-4. **Analyze** shows how many outfits are ready, would be tried, are already compatible, need nothing, or cannot be processed safely. **Details** opens the engineering table.
-5. **Convert** runs everything: *Converting … 87 / 164 · Converted · Needs attention · Remaining*. Outfit Studio may open during conversion. **Do not interact with it unless the converter explicitly asks you to continue manually.** (0.5.3: the converter runs each Outfit Studio session itself — one session per up to 25 outfits — including the "Choose cloth data" question when the answer can be proven.) If the automatic control cannot continue, the converter says so and offers *Retry automatically*, *Continue manually* or *Stop for now*; your progress is kept either way. Outfits that cannot be converted appear by name in *Problems*, and the conversion continues.
-6. The summary shows **Completed**, **No conversion needed** and **Needs attention**, with the name and a short reason of every outfit that did not get 3BBB physics. Their originals are unchanged, but that is not counted as a success. From there:
-   * **Build Converted Outfits** checks that the output mod is enabled and says exactly what to build: **Build only: CBBE 3BBB Auto Conversions - <mod>**, preset CBBE Curvy, Build Morphs ON. Do not batch-build the original projects of the mod after that group — both build the same game mesh files. *Check the build* then confirms every outfit (BUILD_OK) or explains what is missing.
-   * **View Problems** gives each outfit a short reason, with *Technical Details* on request.
-   * **Export Diagnostic Report** writes one anonymised ZIP for a bug report.
-   * **Resume** continues an interrupted conversion.
-   * **Report in-game problem…** records that a converted outfit has no physics (or a problem) in game. The outfit is then listed under *Needs attention*; the automatic check result is kept.
-
-*Settings / Advanced* (or `run_gui.bat --developer`) opens the engineering window described below. It holds the profile fields, the library table, the single-project and package windows, and every report.
-
-Engineering window:
-
-1. Create or select a **profile**, then set the *Fallout 4 directory* and/or the *MO2 directory* (the folder that contains `ModOrganizer.ini`). *Mods directory* and *BodySlide directory* are filled in automatically when left empty. *Output mod* is disabled in Phase 1.
-2. **Detect Installation** shows the MO2 version and profile, the mod counts, the BodySlide version and location, and the detected CBBE 3BBB reference.
-3. **Analyze Library** scans every winning `SliderSets\*.osp` in the MO2 virtual file system, in the background with a progress bar. **Cancel** stops the scan and keeps partial results.
-4. Filter the table (*All, Convert candidates, Already 3BBB, Review, Unsupported, Errors*) or search it. Click a row to see the reasons, warnings, files, family evidence and per-shape region metrics.
-5. *Open HTML report* opens `reports\latest.html`, a self-contained page with the same table, filters and details.
-
-"Include mods disabled in the MO2 profile" also scans disabled mods. They rank below every enabled mod, so they never change what enabled mods resolve to, and their projects show provider kind `disabled-mod`.
-
-## Converting (Phase 2 milestone)
-
-1. Download **BodySlide and Outfit Studio 5.8.x** and extract it to its **own** folder outside MO2 and the game, for example `T:\Fallout 4 Tools\BodySlide 5.8.2`. Do not replace the MO2 BodySlide mod.
-2. Set *Outfit Studio 5.8+* to that folder and press **Check**. You should see version, path and "headless automation supported: YES".
-3. Analyze, select **MM69 Raider Punk Top - CBBE**, then **Convert selected…** → **Dry Run**. Review the preview and the automation script tab, then press **Convert**.
-4. With 5.8.0–5.8.2, Outfit Studio opens: *File → Open Automation… (Ctrl+Shift+A)* → choose the `cbbe3bbb_…` script → **Execute** → OK → close the dialog and close Outfit Studio (answer *No* to saving). (This single-project path is the manual one; package conversion — the Convert button, `convert-package` — runs Outfit Studio unattended since 0.5.3.)
-5. The tool validates the result. Only on SUCCESS does it write to `CBBE 3BBB Auto Conversions`, together with `manifest.json`.
-6. Build with BodySlide (CBBE Curvy + Build Morphs; see `docs/CONVERSION.md`), then test in game.
-
-## Actions
-
-| Action | Meaning |
-| --- | --- |
-| `CONVERT` | CBBE outfit, tight over breast/butt/thigh, no 3BBB weights: a good automatic conversion candidate |
-| `KEEP` | already converted (3BBB physics bones carry plausible weights); do not re-convert |
-| `REVIEW` | needs a human decision: outerwear, loose/far garments, rigid accessories, layered outfits, suspicious existing 3BBB weights, undeclared in-place edits, partial conversions |
-| `SKIP` | nothing to do: no physics region under the item, a body-only project, or superseded by a 3BBB project that builds the same mesh |
-| `UNSUPPORTED` | not a CBBE project (BodyTalk/male, Fusion Girl, non-Fallout-4 NIF) |
-| `ERROR` | the project cannot be analyzed (malformed OSP, missing ShapeData NIF, unreadable NIF) |
-
-Every row carries its reasons. Having 3BBB bones in a mesh is never treated as proof of good weights. See `docs/CLASSIFICATION.md`.
-
-## Documentation
-
-- `docs/RESEARCH.md`: findings about this installation, the BodySlide/Outfit Studio versions, automation options, risks and licensing
-- `docs/ARCHITECTURE.md`: modules and data flow
-- `docs/FILE_FORMATS.md`: OSP, RefTemplates, MO2 and NIF details the analyzer relies on
-- `docs/CLASSIFICATION.md`: the decision rules
-- `docs/CONVERSION.md`: single-project conversion (Phase 2)
-- `docs/BATCH.md`: package/batch conversion (Phase 3) — §13 the unattended Outfit Studio control (0.5.3)
-- `docs/RENAME_PLAN.md`: the planned rename to "Fallout 4 Body & Physics Converter"
-- `docs/TESTING.md`: tests and manual acceptance
-- `CHANGELOG.md`
-
-## Assets and privacy
-
-The repository contains no CBBE, 3BBB, Vtaw, ASA, Raider Punk or other third-party meshes or assets. Tests use a procedurally generated cylinder "body" and synthetic outfits (`tests/synth.py`). The tool has no telemetry, network access or cloud dependency.
+Developer documentation is in `docs/`: architecture, research, testing, the batch engine, and `DEVELOPMENT_HISTORY.md`
+(the former engineering README). The changelog is in `CHANGELOG.md`.

@@ -733,6 +733,8 @@ def build_explanation(v: dict, group: str) -> list[str]:
     if c.get("BUILD_MISMATCH"):
         out.append(f"{c['BUILD_MISMATCH']} built outfits do not match their converted project (rebuild them from the "
                    "package group).")
+    if c.get("ERROR"):
+        out.append(f"{c['ERROR']} converted outfits could not be checked (see the build report).")
     if c.get("BUILD_STALE") or c.get("NOT_BUILT") or c.get("BUILD_MISMATCH"):
         out.append(action)
         out.append("Do not batch-build the original projects of this mod afterwards: they build the same game mesh files.")

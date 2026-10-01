@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cbbe3bbb"
-version = "0.6.0"
+dynamic = ["version"]
 description = "Fallout 4 Body & Physics Converter: converts BodySlide outfit projects between bodies (production route: CBBE → CBBE 3BBB physics)."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -19,6 +19,9 @@ dev = ["pytest>=7"]
 
 [project.scripts]
 cbbe3bbb = "cbbe3bbb.cli:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "cbbe3bbb.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["src"]

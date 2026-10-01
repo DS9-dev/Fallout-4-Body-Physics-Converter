@@ -12,7 +12,8 @@ from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Any, Optional
 
-__all__ = ["ConversionSettings", "AnalysisSettings", "Profile", "ProfileStore", "app_root", "default_config_dir"]
+__all__ = ["ConversionSettings", "AnalysisSettings", "Profile", "ProfileStore", "app_root", "default_config_dir",
+           "migrate_tool_root", "LEGACY_ROOT_NAMES"]
 
 
 def app_root() -> Path:
@@ -107,12 +108,63 @@ class Profile:
         return asdict(self)
 
 
+LEGACY_ROOT_NAMES = ("CBBE3BBBConverter",)  # 0.6.1: the folder was renamed to "Fallout 4 Body & Physics Converter"
+_PATH_FIELDS = ("game_dir", "mo2_dir", "mods_dir", "bodyslide_dir")
+_CONV_PATH_FIELDS = ("outfitstudio_dir", "output_mod_path")
+
+
+def _under(path: str, root: Path) -> Optional[Path]:
+    """``path`` relative to ``root`` when it lies inside it (Windows-style case-insensitive), else None."""
+    a = str(path).replace("/", "\\").rstrip("\\")
+    b = str(root).replace("/", "\\").rstrip("\\")
+    if a.lower() == b.lower():
+        return Path(".")
+    if a.lower().startswith(b.lower() + "\\"):
+        return Path(*a[len(b) + 1:].split("\\"))
+    return None
+
+
+def migrate_tool_root(profiles, current_root: Path, stored_root: Optional[str] = None) -> list[str]:
+    """0.6.1: paths saved inside a FORMER application folder (the stored ``tool_root``, or a sibling folder with a legacy
+    name such as ``CBBE3BBBConverter``) are moved to the current folder — only when the old path no longer exists and
+    the same relative path exists under the current folder. Other user paths are never touched. Returns the changes."""
+    current_root = Path(current_root)
+    former = []
+    if stored_root and Path(stored_root) != current_root:
+        former.append(Path(stored_root))
+    for name in LEGACY_ROOT_NAMES:
+        cand = current_root.parent / name
+        if current_root.name != name and cand not in former:
+            former.append(cand)
+    changes: list[str] = []
+
+    def fix(value: str) -> str:
+        if not value or Path(value).exists():
+            return value
+        for old in former:
+            rel = _under(value, old)
+            if rel is not None and (current_root / rel).exists():
+                new = str(current_root / rel)
+                changes.append(f"{value} -> {new}")
+                return new
+        return value
+
+    for p in profiles:
+        for f in _PATH_FIELDS:
+            setattr(p, f, fix(getattr(p, f)))
+        p.extra_bodyslide_roots = [fix(x) for x in p.extra_bodyslide_roots]
+        for f in _CONV_PATH_FIELDS:
+            setattr(p.conversion, f, fix(getattr(p.conversion, f)))
+    return changes
+
+
 class ProfileStore:
     def __init__(self, config_dir: Optional[Path] = None):
         self.config_dir = Path(config_dir) if config_dir else default_config_dir()
         self.path = self.config_dir / "profiles.json"
         self.profiles: dict[str, Profile] = {}
         self.last_profile: str = ""
+        self.migrated: list[str] = []
         self.load()
 
     def load(self) -> None:
@@ -135,10 +187,22 @@ class ProfileStore:
                 continue
             self.profiles[p.name] = p
         self.last_profile = data.get("last_profile", "")
+        self.migrated = migrate_tool_root(self.profiles.values(), self.tool_root, data.get("tool_root"))
+        if self.migrated:
+            try:
+                self.save()
+            except OSError:
+                pass
+
+    @property
+    def tool_root(self) -> Path:
+        """The application folder this store belongs to (``<root>/config/profiles.json``)."""
+        return self.config_dir.parent
 
     def save(self) -> None:
         self.config_dir.mkdir(parents=True, exist_ok=True)
-        payload = {"schema": 1, "last_profile": self.last_profile, "profiles": [p.to_dict() for p in self.profiles.values()]}
+        payload = {"schema": 1, "last_profile": self.last_profile, "tool_root": str(self.tool_root),
+                   "profiles": [p.to_dict() for p in self.profiles.values()]}
         fd, tmp = tempfile.mkstemp(dir=self.config_dir, prefix=".profiles-", suffix=".tmp")
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as fh:

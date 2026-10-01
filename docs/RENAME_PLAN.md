@@ -43,3 +43,11 @@ Done (non-destructive): the user-facing product name **Fallout 4 Body & Physics 
 heading, report headers, `cbbe3bbb.PRODUCT_NAME`). Unchanged by design: folder, `run_batch.bat`, package `cbbe3bbb`,
 `TOOL_ID` "CBBE3BBBConverter" in manifests/settings, output mod and group names, profile names. A migration of
 those is only worth doing with a concrete benefit and a tested migration path.
+
+## Status 0.6.1
+
+The application folder is renamed to `T:\Fallout 4 Tools\Fallout 4 Body & Physics Converter` (a plain folder rename;
+no junction). Code, launchers and tests are folder-relative; profiles remember `tool_root` and migrate paths that
+pointed inside the former folder. Unchanged on purpose: package `cbbe3bbb`, `run_batch.bat`, manifest `tool`
+"CBBE3BBBConverter", output mod "CBBE 3BBB Auto Conversions", groups, profile names, `CBBE3BBB_HOME` /
+`CBBE3BBB_CONFIG_DIR` environment variables.

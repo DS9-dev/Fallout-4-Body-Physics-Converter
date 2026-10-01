@@ -60,7 +60,8 @@ def package_report_text(r, verify: Optional[dict] = None) -> str:
             continue
         L += ["", f"[{b}]"]
         for i in items:
-            extra = f" — {i['message']}" if i["message"] else ""
+            extra = (f" — {i['message']}" if i["message"] else "") + (f" [failed check: {i['failed_check']}]"
+                                                                      if i.get("failed_check") else "")
             origin = f" (via {i['origin']})" if i.get("origin") not in ("", "SAFE", None) and i["outcome"] == "CONVERTED" else ""
             L.append(f"  {i['outcome']:<24} {i['name']}{origin}{extra}")
             if i["outcome"] in ("COULD_NOT_CONVERT_SAFELY", "FAILED", "UNFINISHED"):

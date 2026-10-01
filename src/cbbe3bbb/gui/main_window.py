@@ -50,7 +50,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import PRODUCT_NAME, __version__
+from .. import PRODUCT_NAME, __version__, product_title
 from ..analysis.models import ProjectResult
 from ..app.controller import AppController, project_details_text
 from ..profiles.store import Profile
@@ -192,7 +192,7 @@ class MainWindow(QMainWindow):
         self.ctl = controller
         self._thread: Optional[QThread] = None
         self._worker: Optional[Worker] = None
-        self.setWindowTitle(f"{PRODUCT_NAME} {__version__} — developer window")
+        self.setWindowTitle(product_title("developer window"))
         self.resize(1400, 900)
         self._build()
         self._load_profiles()
@@ -647,7 +647,7 @@ def run_gui(controller: AppController, developer: bool = False) -> int:
     """Phase 3.2: the simplified window (Normal mode) by default; ``developer`` opens the engineering window."""
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName("CBBE3BBBConverter")  # settings identity: unchanged
-    app.setApplicationDisplayName(PRODUCT_NAME)
+    # 0.6.1: no setApplicationDisplayName — Qt appends it to every window title ("… 0.6.0 - Fallout 4 Body & …")
     if developer:
         win = MainWindow(controller)
     else:

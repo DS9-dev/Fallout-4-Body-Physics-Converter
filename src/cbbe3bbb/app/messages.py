@@ -10,7 +10,7 @@ import re
 from typing import Iterable
 
 __all__ = ["UNATTENDED_NOTE", "CONTROL_FAILURE_TEXT", "BUILD_STALE_TEXT", "humanize", "package_message", "system_message", "LEFT_UNCHANGED", "OUTCOME_LABELS", "RESULT_LABELS",
-           "MESSAGES", "SHORT", "short_reason", "RUNTIME_STATES"]
+           "MESSAGES", "SHORT", "short_reason", "RUNTIME_STATES", "failed_check"]
 
 LEFT_UNCHANGED = "Original outfit was left unchanged."
 
@@ -46,7 +46,10 @@ MESSAGES = {
     "WEIGHTS_LOOK_WRONG": "The automatic physics weights looked wrong (left and right sides mixed).",
     "WEIGHTS_INCOMPLETE": "Automatic physics weights could not be stored completely for part of this outfit "
                           "(too many bones per vertex).",
-    "PHYSICS_MISSING": "The converted outfit did not receive the expected physics.",
+    "PHYSICS_MISSING": "Part of the converted outfit did not receive all the expected physics bones; the result was "
+                       "rejected by the strict validation.",
+    "UNEXPECTED_SHAPE": "The converted project contained an outfit part that was not part of the conversion plan; the "
+                        "result was rejected.",
     "SHAPE_CHANGED": "The outfit's shape changed during conversion.",
     "BODY_IN_OUTPUT": "The converted outfit contained the body mesh.",
     "NOT_CONVERTED_BY_OS": "Outfit Studio did not convert this outfit.",
@@ -90,6 +93,7 @@ _RULES: list[tuple[re.Pattern, str]] = [(re.compile(p, re.I), c) for p, c in (
     (r"only a body/reference shape", "GEOMETRY_NOT_VERIFIED"),
     (r"no reference vertex within radius|no safe radius|beyond the weight-transfer radius|beyond the search radius",
      "WEIGHT_TRANSFER_UNSAFE"),
+    (r"NEW shapes \[", "UNEXPECTED_SHAPE"),
     (r"CBBE-3BBB body NOT embedded|reference shape not listed|reference body in the output", "BODY_IN_OUTPUT"),
     (r"geometry unchanged|vertex positions identical|triangles / topology|vertex/triangle counts", "SHAPE_CHANGED"),
     (r"cross-side / quality anomaly|opposite side of the body|mirrored", "WEIGHTS_LOOK_WRONG"),
@@ -168,7 +172,8 @@ SHORT = {
     "WEIGHT_TRANSFER_UNSAFE": "physics conversion unavailable",
     "WEIGHTS_INCOMPLETE": "physics conversion unavailable",
     "PHYSICS_NOT_VERIFIED": "physics could not be verified",
-    "PHYSICS_MISSING": "physics could not be verified",
+    "PHYSICS_MISSING": "expected physics bones missing (rejected)",
+    "UNEXPECTED_SHAPE": "conversion result rejected (unplanned part)",
     "WEIGHTS_LOOK_WRONG": "physics could not be verified",
     "GEOMETRY_NOT_VERIFIED": "physics could not be verified",
     "COMPLEX_GEOMETRY": "physics could not be verified",
@@ -201,6 +206,14 @@ SHORT = {
 }
 # in-game verification states recorded by the user (manifest acceptance); PASS clears a report
 RUNTIME_STATES = {"FAIL": "RUNTIME_FAIL", "PARTIAL": "RUNTIME_PARTIAL"}
+
+
+def failed_check(reasons: Iterable[str]) -> str:
+    """0.6.1: the first strict-validation check that failed, as the engine named it ('' when none)."""
+    for r in reasons:
+        if r.startswith("validation failed: "):
+            return r[len("validation failed: "):].split(" — ", 1)[0].strip()
+    return ""
 
 
 def short_reason(code: str) -> str:

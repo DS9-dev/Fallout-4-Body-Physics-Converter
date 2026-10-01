@@ -139,8 +139,12 @@ def _parse_set(el: ET.Element) -> SliderSet:
         keep_zapped_shapes=_bool(out_el.get("KeepZappedShapes") if out_el is not None else None),
     )
     for sh in el.findall("Shape"):
-        shape_name = _text(sh)
-        if not shape_name:
+        # 0.6.1: shape names are exact. BodySlide/Outfit Studio keep leading/trailing spaces (real case: Vtaw Overalls
+        # Belts lists "Metal Overalls " and its NIF has that exact shape); stripping lost the shape from the analysis.
+        # Only text spanning lines (hand-formatted XML) is trimmed.
+        raw = sh.text or ""
+        shape_name = raw.strip() if ("\n" in raw or "\r" in raw or "\t" in raw) else raw
+        if not shape_name.strip():
             continue
         ss.shapes.append(
             ShapeEntry(

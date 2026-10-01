@@ -245,7 +245,7 @@ class EndToEndTests(unittest.TestCase):
 
     def test_product_name(self):
         self.assertEqual(PRODUCT_NAME, "Fallout 4 Body & Physics Converter")
-        self.assertEqual(__version__, "0.6.0")
+        self.assertRegex(__version__, r"^0\.6\.\d+$")
         self.assertEqual(TOOL_ID, "CBBE3BBBConverter")
 
 

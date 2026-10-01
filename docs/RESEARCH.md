@@ -504,3 +504,37 @@ installed.
     penetration beyond tolerance), CBBE sliders present and FG sliders absent, no ZeX bones weighted, topology/UV/
     segment invariants unchanged, and the analyzer re-classifies the intermediate as CBBE with HIGH confidence. Only
     then the existing CBBE → CBBE 3BBB physics stage and its strict validation run.
+
+## 24. 0.6.1: real GUI acceptance findings (2026-10-01/02)
+
+Packages converted through the GUI (Completed / No conversion needed / Needs attention): Clothes Pack 4 41/9/3,
+Vtaw Overalls 5/1/2, Vtaw Utility Pack 1 22/4/11, Vtaw Wardrobe 4 23/11/4 (the generated group held exactly the 23
+AUTO projects), Vtaw Wardrobe 5 60/16/22, Vtaw Wardrobe 6 73/14/11 (stress test; the author's ready-made 3BBB
+conversion is used in game). NPC Underarmor Replacer verified in game; an unrelated ASA RobCo leveled-list patch was
+distributing ASA outfits to Raiders (not a converter issue).
+
+**Vtaw Overalls Belts — real defect, fixed.** Source OSP `VtawOverallsBelts.osp` lists `<Shape target="Metal Overalls ">
+Metal Overalls </Shape>` (trailing space) and `OverallsBelts.nif` has exactly that shape (3 shapes: Belts Belly 3264 v,
+`Metal Overalls ` 1552 v, Metall Belly belts2 6560 v). The OSP parser stripped the name → "missing from the NIF" → the
+plan covered only Belts Belly; Outfit Studio still saved all three shapes → failed checks "expected outfit shape(s)
+listed", "CBBE-3BBB body NOT embedded (NEW shapes ['Metal Overalls '])" and "analyzer KEEP (missing Metal Overalls
+/butt)". BodySlide keeps the exact name; Outfit Studio 5.8.2 trims TargetMeshes entries (`SplitCommaSeparated`,
+Automation.h), so such names are targeted with `TargetRegex` and `^…$` patterns (ECMAScript, icase, regex_search).
+
+**Vtaw Wardrobe 5 Bodysuit V1/V2/V3/V6/V7 — correct strict rejection of a marginal part; not changed.** In batch
+`20261001-223725` only these five of the attempted bodysuits were REVIEW (V4, V5 and all "No Arms" variants
+VALIDATED). Each fails exactly one check: `arm: breast 3BBB bones present` — `LBreast_01_skin(26), RBreast_01_skin(26)`,
+`_02`/`_03` 0. The main shape `v1` (8 699 v) passed every check (breast/butt/thigh, prediction agreement). The sleeve
+shape `arm` (2 526 v) only touches the breast region at the armpit (relevance MEDIUM, 20 % of the reference region,
+42 vertices predicted) and the planner's own full-copy prediction for it is exactly `LBreast_01_skin, RBreast_01_skin`
+— Outfit Studio produced what was predicted. The rule "≥ half of a planned region's bones on ≥ 5 vertices" is stricter
+than the planner's prediction for such marginal parts. Classification: (c) a planner/validator strictness mismatch,
+not an automation/export defect and not a mesh defect. Kept unchanged (the same rule decided accepted CP5 cases such as
+chain v1 / leggings v5); the message now names the failing check. A possible future rule ("every bone the prediction
+expects for the region is weighted, and ≥ 50 % of the predicted region vertices") is a user decision.
+
+**Product folder rename.** No absolute tool-root path in code, launchers or tests (fixture log text only). The saved
+converter profile holds no path inside the tool folder (Outfit Studio source is the separate BodySlide 5.8.2 folder);
+`runtime\…\Config.xml` is rewritten per session; `.venv` uses `python -m` (no console-script paths); batches resolve
+their workspace relative to the tool root. '&' in the new name: launchers quote `%~dp0`; XML is written by
+ElementTree (escaped); subprocesses get argument lists. ModOrganizer.ini has no reference to the tool folder.

@@ -27,7 +27,7 @@ from typing import Callable, Optional
 
 from ..conversion.outcomes import (MODE_ALL_POSSIBLE, MODE_SAFE, POLICY_ATTEMPTABLE, POLICY_BLOCKED, applicable_percent,
                                    display_name, final_bucket, outcome_for, package_result)
-from .messages import (CONTROL_FAILURE_TEXT, LEFT_UNCHANGED, OUTCOME_LABELS, RESULT_LABELS, RUNTIME_STATES,
+from .messages import (CONTROL_FAILURE_TEXT, failed_check, LEFT_UNCHANGED, OUTCOME_LABELS, RESULT_LABELS, RUNTIME_STATES,
                        UNATTENDED_NOTE, humanize, package_message, short_reason, system_message)
 
 __all__ = ["PackagePipeline", "PipelineResult", "analysis_overview", "LEVELS", "result_text", "problem_lines"]
@@ -136,6 +136,24 @@ ROUTE_STATUS_TEXT = {"PRODUCTION": "Ready to convert", "LEGACY_SUPPORTED": "Conv
                      "SOURCE_UNVERIFIED": "Body not determined for the chosen source body"}
 STAGE_TEXT = {"NOT_REQUIRED": "not required", "PRODUCTION": "required", "LEGACY_SUPPORTED": "not required (as before)",
               "NOT_IMPLEMENTED": "not implemented", "NOT_APPLICABLE": "—"}
+
+
+BUILD_STATUS_TEXT = (("BUILD_OK", "built correctly from the generated 3BBB project (weights compared)"),
+                     ("NOT_BUILT", "not built yet (no built game mesh found)"),
+                     ("BUILD_STALE", "built before the conversion or from the original project (rebuild the AUTO group)"),
+                     ("BUILD_MISMATCH", "built mesh does not match the generated project (rebuild the AUTO group)"),
+                     ("ERROR", "could not be checked (generated file missing or a mesh unreadable)"))
+
+
+def build_summary_lines(v: dict) -> list[str]:
+    """0.6.1: 'Check the build' for normal users: one line per status, then what to do (statuses are exclusive)."""
+    c = v.get("counts", {}) or {}
+    total = v.get("committed", 0)
+    lines = [f"Built correctly: {c.get('BUILD_OK', 0)} of {total} converted outfits."]
+    for key, text in BUILD_STATUS_TEXT[1:]:
+        if c.get(key):
+            lines.append(f"  {c[key]} {text}")
+    return lines + [x for x in v.get("explanation", []) if not x.startswith("All ")]
 
 
 def route_lines(ov: dict) -> list[str]:
@@ -421,13 +439,15 @@ class PackagePipeline:
                     and p.review_policy_reason not in technical:
                 technical = [p.review_policy_reason] + technical
             code, msg = humanize(outcome, technical, p.status, attempted=bool(e), bucket=p.bucket)
+            # 0.6.1: the strict check that rejected the result, as the engine named it (shown with the message)
+            fc = failed_check(technical) if e and outcome in ("COULD_NOT_CONVERT_SAFELY", "FAILED") else ""
             if outcome == "COULD_NOT_CONVERT_SAFELY" and not e and p.review_policy == POLICY_ATTEMPTABLE \
                     and r.mode == MODE_SAFE:
                 outcome = "SKIPPED"
                 code, msg = humanize(outcome, technical, p.status, attempted=False, bucket=p.bucket)
             item = {"project": p.project, "name": p.display_name, "item_names": [g.get("armor_name") for g in p.game_items],
                     "mesh": p.output_mesh, "outcome": outcome, "outcome_label": OUTCOME_LABELS.get(outcome, outcome),
-                    "code": code, "message": msg, "left_unchanged": LEFT_UNCHANGED if outcome in PROBLEM_OUTCOMES + ("SKIPPED",) else "",
+                    "code": code, "message": msg, "failed_check": fc, "left_unchanged": LEFT_UNCHANGED if outcome in PROBLEM_OUTCOMES + ("SKIPPED",) else "",
                     "technical": technical[:12], "action": p.action, "status": p.status, "batch_status": status or "",
                     "confidence": p.confidence, "regions": list(p.regions), "review_policy": p.review_policy,
                     "origin": (e or {}).get("origin", p.attempt_origin), "bucket": final_bucket(p.bucket, status, technical),

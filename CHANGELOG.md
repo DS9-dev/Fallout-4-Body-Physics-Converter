@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.6.1 (stabilization: product folder rename, real-acceptance fixes, end-user README)
+
+Real GUI acceptance on CP4, Vtaw Overalls, Utility Pack 1, Wardrobe 4/5/6 (RESEARCH §24). Conversion semantics and the
+strict validation are unchanged except for one proven defect:
+
+- **Fixed (real defect, Vtaw Overalls Belts): exact shape names.** The OSP parser stripped spaces from shape names;
+  the project lists `Metal Overalls ` (trailing space) exactly as its NIF does, so the analysis lost that part, Outfit
+  Studio saved it anyway and validation rejected the result ("conversion result rejected", NEW shapes
+  ['Metal Overalls ']). Names are now exact (only multi-line text is trimmed). Outfit Studio itself trims
+  `TargetMeshes` entries, so a name with leading/trailing blanks or a comma is addressed with an exact anchored pattern
+  (`TargetRegex`); normal names produce the same scripts as before. Analyzer cache version 1.2 (re-analysis).
+- **WD5 Bodysuit V1/V2/V3/V6/V7 investigated, behaviour unchanged** (RESEARCH §24): the generated meshes match the
+  planner's own prediction; the strict per-region rule rejects the sleeve part `arm` (breast 2 of 6 bones). Documented,
+  wording improved; not changed without a decision.
+- Window title: no duplicated product name (Qt application display name removed); `product_title()`.
+- One version source: `cbbe3bbb.__version__`; `pyproject.toml` reads it (`dynamic = ["version"]`).
+- Build Converted Outfits: the exact group large and selectable, numbered steps (group filter, preset, Build Morphs,
+  choose "- 3BBB AUTO" on conflicts), the explicit overwrite warning, a note where BodySlide appears (no focus hacks).
+- Check the build: one line per status (built correctly / not built / stale / mismatch / could not be checked); ERROR
+  is now explained; BUILD_OK still requires the weight comparison.
+- Needs attention: the failing strict check is shown (`failed_check`); new messages UNEXPECTED_SHAPE and a precise
+  PHYSICS_MISSING ("expected physics bones missing (rejected)").
+- Folder rename to `T:\Fallout 4 Tools\Fallout 4 Body & Physics Converter`: launchers are folder-relative and quote
+  `%~dp0` ('&' safe), Outfit Studio's Config.xml is written with XML escaping, profiles store `tool_root` and move
+  paths that pointed inside the former folder (`CBBE3BBBConverter`) when the same relative path exists in the new one.
+  Internal identities unchanged (package `cbbe3bbb`, manifest `tool`, output mod, groups, profile names).
+- CLI: `run_batch.bat --help` shows the product, version and the converter/MO2 profile distinction.
+- README rewritten as the end-user manual; the former engineering README is `docs/DEVELOPMENT_HISTORY.md`.
+- Tests: `tests/test_shape_names.py`, `tests/test_release.py` (version source, title, launchers, a full run from a
+  folder named "Fallout 4 Body & Physics Converter", profile migration, messages).
+
 ## 0.6.0 (Body Architecture Foundation; product name "Fallout 4 Body & Physics Converter")
 
 **0.5.3 UNATTENDED OUTFIT STUDIO: ACCEPTED** on real Windows (RESEARCH §21). That backend is unchanged.

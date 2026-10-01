@@ -16,6 +16,7 @@ import subprocess
 import sys
 import threading
 import traceback
+from html import escape as html_escape
 from pathlib import Path
 from typing import Any, Callable, Optional
 
@@ -44,12 +45,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import PRODUCT_NAME, __version__
+from .. import PRODUCT_NAME, __version__, product_title
 from ..app.controller import AppController
 from ..app.messages import CONTROL_FAILURE_TEXT, LEFT_UNCHANGED, OUTCOME_LABELS, UNATTENDED_NOTE, package_message
 from ..conversion.bodies import SOURCE_CHOICES, TARGET_CHOICES, body_label
 from ..conversion.routes import RouteNotImplemented, resolve_request
-from ..app.pipeline import LEVELS, analysis_overview, route_lines
+from ..app.pipeline import LEVELS, analysis_overview, build_summary_lines, route_lines
 
 log = logging.getLogger(__name__)
 
@@ -135,7 +136,8 @@ class ProblemsDialog(QDialog):
     def text(self) -> str:
         L = []
         for i in self.items:
-            L += [i["name"], f"  {i['message']}"] + ([f"  {LEFT_UNCHANGED}"] if not i.get("runtime_issue") else [])
+            L += [i["name"], f"  {i['message']}"] + ([f"  Failed check: {i['failed_check']}"] if i.get("failed_check") else []) \
+                + ([f"  {LEFT_UNCHANGED}"] if not i.get("runtime_issue") else [])
             if self.tech.isChecked():
                 L += [f"    project: {i['project']}  status: {i.get('batch_status') or i.get('status')}"]
                 L += [f"    - {t}" for t in i.get("technical", [])]
@@ -150,6 +152,7 @@ class ProblemsDialog(QDialog):
         parts = []
         for i in self.items:
             s = (f"<p><b>{e(i['name'])}</b> — {e(i.get('short', ''))}<br>{e(i['message'])}"
+                 + (f"<br>Failed check: <code>{e(i['failed_check'])}</code>" if i.get("failed_check") else "")
                  + ("" if i.get("runtime_issue") else f"<br><i>{e(LEFT_UNCHANGED)}</i>"))
             if self.tech.isChecked():
                 s += (f"<br><small>project: {e(i['project'])} · status {e(i.get('batch_status') or i.get('status', ''))} · "
@@ -213,15 +216,29 @@ class BuildDialog(QDialog):
             warn.setWordWrap(True)
             v.addWidget(warn)
         n = len(b.get("generated_projects", []))
-        steps = QLabel("<br>".join([f"Start <b>BodySlide</b> from Mod Organizer 2, then:",
-                                    f"Build only: <b>{b.get('group', '')}</b> ({n} outfits)",
-                                    f"Preset: <b>{b.get('preset', 'CBBE Curvy')}</b>",
-                                    f"Build Morphs: <b>{'ON' if b.get('build_morphs', True) else 'OFF'}</b>",
-                                    "Click <b>Batch Build</b> → <b>Build</b>"]))
+        # 0.6.1: the exact group first and large (searching by outfit name shows original and AUTO projects together,
+        # and an original project built afterwards overwrites the same mesh)
+        grp = QLabel(f"Build only this group:<br><span style='font-size:14pt'><b>{html_escape(b.get('group', ''))}</b>"
+                     f"</span> ({n} outfits)")
+        grp.setTextFormat(Qt.RichText)
+        grp.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        grp.setWordWrap(True)
+        v.addWidget(grp)
+        steps = QLabel("<br>".join([
+            "1. Start <b>BodySlide</b> from Mod Organizer 2 (Mod Organizer may show its usual warnings first).",
+            f"2. Choose the group <b>{html_escape(b.get('group', ''))}</b> in BodySlide's group filter "
+            "(do not rely on the text search alone).",
+            f"3. Preset: <b>{html_escape(b.get('preset', 'CBBE Curvy'))}</b> (the converter profile's preset; use the "
+            "CBBE preset you play with).",
+            f"4. Build Morphs: <b>{'ON' if b.get('build_morphs', True) else 'OFF'}</b>",
+            "5. Click <b>Batch Build</b> → <b>Build</b>. If BodySlide asks which project should build a file, choose the "
+            "<b>- 3BBB AUTO</b> one.",
+            "6. Come back here and press <b>Check the build</b>."]))
         steps.setTextFormat(Qt.RichText)
         steps.setWordWrap(True)
         v.addWidget(steps)
-        note = QLabel("<b>Warning:</b> " + (b.get("warning") or b.get("order", "")))
+        note = QLabel("<b>Warning:</b> Build only this generated AUTO group. Do not batch-build the original package "
+                      "afterward, because it may overwrite the same mesh outputs.")
         note.setTextFormat(Qt.RichText)
         note.setWordWrap(True)
         v.addWidget(note)
@@ -260,6 +277,9 @@ class BuildDialog(QDialog):
             return
         try:  # the same link MO2 writes into its desktop shortcuts: runs the executable inside MO2's virtual folder
             subprocess.Popen([str(exe), f"moshortcut://:{title}"], cwd=str(exe.parent))
+            # 0.6.1: Windows decides which window comes to the front; no focus tricks. Say where to look.
+            self.out.setText("BodySlide is starting through Mod Organizer 2. Mod Organizer may show its usual dialog "
+                             "first; if BodySlide does not appear in front, look for it on the taskbar.")
         except OSError as exc:
             QMessageBox.information(self, "BodySlide", f"Could not start it ({exc}). Start BodySlide from Mod Organizer 2.")
 
@@ -270,9 +290,7 @@ class BuildDialog(QDialog):
         except Exception as exc:  # noqa: BLE001
             self.out.setText(str(exc))
             return
-        ok = v["counts"].get("BUILD_OK", 0)
-        msg = [f"Built correctly: {ok} of {v['committed']} converted outfits."] + list(v.get("explanation", []))
-        self.out.setText("\n".join(msg))
+        self.out.setText("\n".join(build_summary_lines(v)))
 
 
 class SimpleWindow(QMainWindow):
@@ -286,7 +304,7 @@ class SimpleWindow(QMainWindow):
         self.preview = None
         self.result = None
         self._dev = None
-        self.setWindowTitle(f"{PRODUCT_NAME} {__version__}")
+        self.setWindowTitle(product_title())
         self.resize(760, 720)
         self._build()
         self._body_changed()

@@ -106,3 +106,10 @@ package routing on the fixtures (CBBE → proven route, native 3BBB KEEP, BodyTa
 package recognised and never converted), "Auto Detect changes no classification" (with and without the gate, three
 fixtures), legacy preview/manifest without body fields, manifest round trip of the new fields, UNKNOWN_AUTO unchanged,
 CLI body arguments, product name vs serialised identities.
+
+## 0.6.1 stabilization
+
+`tests/test_shape_names.py` (exact shape names incl. trailing spaces; TargetRegex patterns; a trailing-space shape is
+planned and converted — fails with the old stripping parser) and `tests/test_release.py` (one version source, clean
+title, '&'-safe folder-relative launchers, a full one-click run from a folder named "Fallout 4 Body & Physics
+Converter", profile tool-root migration, user messages).

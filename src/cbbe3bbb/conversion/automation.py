@@ -53,6 +53,51 @@ def _fmt(v: object) -> str:
     return str(v)
 
 
+_RE_SPECIAL = set("\\^$.|?*+()[]{}")
+
+
+def _plain_target(name: str) -> bool:
+    """Can Outfit Studio address this shape by name in TargetMeshes (no surrounding blanks, no comma)?"""
+    return bool(name) and name == name.strip(" \t") and "," not in name
+
+
+def target_pattern(name: str) -> str:
+    """An ECMAScript pattern that matches exactly ``name`` (Outfit Studio: std::regex, icase, regex_search)."""
+    out = []
+    for ch in name:
+        if ch == ",":
+            out.append("\\x2C")  # a comma would split the TargetMeshes list
+        elif ch in _RE_SPECIAL:
+            out.append("\\" + ch)
+        else:
+            out.append(ch)
+    return "^" + "".join(out) + "$"
+
+
+def pattern_target(pattern: str) -> Optional[str]:
+    """The shape name of a pattern made by :func:`target_pattern` (None for any other regex)."""
+    if not (pattern.startswith("^") and pattern.endswith("$")):
+        return None
+    body, out, i = pattern[1:-1], [], 0
+    while i < len(body):
+        ch = body[i]
+        if ch == "\\":
+            if body[i + 1:i + 4] == "x2C":
+                out.append(",")
+                i += 4
+                continue
+            if i + 1 < len(body) and body[i + 1] in _RE_SPECIAL:
+                out.append(body[i + 1])
+                i += 2
+                continue
+            return None
+        if ch in _RE_SPECIAL:
+            return None
+        out.append(ch)
+        i += 1
+    return "".join(out)
+
+
 @dataclass
 class AutomationStep:
     type: str
@@ -66,8 +111,14 @@ class AutomationStep:
         if self.note:
             ET.SubElement(el, "Note").text = self.note
         if self.target_meshes:
-            ET.SubElement(el, "TargetMeshes").text = ", ".join(self.target_meshes)
-            ET.SubElement(el, "TargetRegex").text = "false"
+            if any(not _plain_target(n) for n in self.target_meshes):
+                # 0.6.1: Outfit Studio splits TargetMeshes at commas and trims spaces (Automation.h SplitCommaSeparated),
+                # so a shape named "Metal Overalls " cannot be addressed by name. Exact, anchored patterns instead.
+                ET.SubElement(el, "TargetMeshes").text = ", ".join(target_pattern(n) for n in self.target_meshes)
+                ET.SubElement(el, "TargetRegex").text = "true"
+            else:
+                ET.SubElement(el, "TargetMeshes").text = ", ".join(self.target_meshes)
+                ET.SubElement(el, "TargetRegex").text = "false"
         for k, v in self.params.items():
             ET.SubElement(el, k).text = _fmt(v)
         return el
@@ -120,9 +171,17 @@ def parse_script(xml_text: str) -> AutomationScript:
             elif ch.tag == "TargetMeshes":
                 step.target_meshes = [x.strip() for x in (ch.text or "").split(",") if x.strip()]
             elif ch.tag == "TargetRegex":
+                if (ch.text or "").strip().lower() == "true":
+                    step.params["__regex__"] = "true"
                 continue
             else:
                 step.params[ch.tag] = ch.text or ""
+        if step.params.pop("__regex__", None):  # our exact patterns → names (anything else stays a pattern)
+            names = [pattern_target(x) for x in step.target_meshes]
+            if all(n is not None for n in names):
+                step.target_meshes = names
+            else:
+                step.params["TargetRegexPatterns"] = ", ".join(step.target_meshes)
         sc.steps.append(step)
     return sc
 

@@ -35,7 +35,7 @@ from pathlib import Path
 from collections import Counter
 from typing import Optional
 
-from . import __version__
+from . import PRODUCT_NAME, __version__
 from .app.controller import AppController, AppPaths
 from .app.logsetup import setup_logging
 from .profiles.store import Profile
@@ -87,7 +87,8 @@ def _progress(done: int, total: int, msg: str) -> None:
 
 
 def main(argv: Optional[list[str]] = None) -> int:
-    ap = argparse.ArgumentParser(prog="cbbe3bbb", description="CBBE → CBBE 3BBB library analyzer (Phase 1, read-only)")
+    ap = argparse.ArgumentParser(prog="run_batch.bat", description=f"{PRODUCT_NAME} {__version__} — command line "
+                                 "(--profile = converter profile, --mo2-profile = Mod Organizer 2 profile)")
     ap.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     ap.add_argument("--home", help="application folder for config/reports/logs/cache (default: repository root)")
     sub = ap.add_subparsers(dest="cmd")

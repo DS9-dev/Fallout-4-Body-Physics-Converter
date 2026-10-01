@@ -33,7 +33,7 @@ log = logging.getLogger(__name__)
 
 __all__ = ["ANALYZER_VERSION", "ScanReport", "LibraryAnalyzer", "ProgressFn", "CancelledError"]
 
-ANALYZER_VERSION = "1.1"  # 1.1: per-shape DataFolder is body evidence only for body folders
+ANALYZER_VERSION = "1.2"  # 1.1: per-shape DataFolder is body evidence only for body folders; 1.2: exact shape names (0.6.1)
 ProgressFn = Callable[[int, int, str], None]
 
 
