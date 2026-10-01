@@ -1,3 +1,4 @@
+# Python / tooling
 __pycache__/
 *.pyc
 .venv/
@@ -5,9 +6,16 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+
+# machine-specific converter state (local paths) — never published
 config/profiles.json
 config/*.corrupt
+config/.profiles-*.tmp
+
+# local runtime data: workspaces, private Outfit Studio copy, reports, logs, cache, diagnostics
+work/
+runtime/
+reports/
 logs/
 cache/
-reports/latest.*
-reports/history/
+*.zip

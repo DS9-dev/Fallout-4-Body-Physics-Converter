@@ -250,6 +250,7 @@ run programs from the current folder by name alone). This is normal PowerShell b
 ```powershell
 .\run_batch.bat --help
 .\run_batch.bat body-routes
+.\run_batch.bat verify-package-build --profile Default --package "Vtaw Wardrobe 4 Bodyslide"
 ```
 
 In the classic Command Prompt (`cmd.exe`) the plain `run_batch.bat …` form works.
