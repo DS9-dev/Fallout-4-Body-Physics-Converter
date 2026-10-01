@@ -1,0 +1,33 @@
+diff --git a/src/program/OutfitStudio.cpp b/src/program/OutfitStudio.cpp
+index b0009c35..4d24f824 100644
+--- a/src/program/OutfitStudio.cpp
++++ b/src/program/OutfitStudio.cpp
+@@ -3251,14 +3251,16 @@ void OutfitStudioFrame::ActiveShapesUpdated(UndoStateProject* usp, bool bIsUndo)
+ 		if (usp->undoType == UndoType::Weight) {
+ 			for (auto& uss : usp->usss) {
+ 				Mesh* m = glView->GetMesh(uss.shapeName);
+-				if (!m)
++				// without a GL mesh (headless automation) still apply the weights
++				const std::string shapeName = m ? m->shapeName : uss.shapeName;
++				if (!m && !project->GetWorkNif()->FindBlockByName<NiShape>(shapeName))
+ 					continue;
+ 
+ 				for (auto& bw : uss.boneWeights) {
+ 					if (bw.weights.empty())
+ 						continue;
+-					project->GetWorkAnim()->AddShapeBone(m->shapeName, bw.boneName);
+-					auto weights = project->GetWorkAnim()->GetWeightsPtr(m->shapeName, bw.boneName);
++					project->GetWorkAnim()->AddShapeBone(shapeName, bw.boneName);
++					auto weights = project->GetWorkAnim()->GetWeightsPtr(shapeName, bw.boneName);
+ 					if (!weights)
+ 						continue;
+ 					for (auto& p : bw.weights) {
+@@ -3269,7 +3271,7 @@ void OutfitStudioFrame::ActiveShapesUpdated(UndoStateProject* usp, bool bIsUndo)
+ 							(*weights)[p.first] = val;
+ 					}
+ 				}
+-				if (project->bPose) {
++				if (m && project->bPose) {
+ 					auto shape = project->GetWorkNif()->FindBlockByName<NiShape>(m->shapeName);
+ 					std::vector<Vector3> verts;
+ 					project->GetLiveVerts(shape, verts);
