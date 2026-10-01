@@ -51,3 +51,11 @@ no junction). Code, launchers and tests are folder-relative; profiles remember `
 pointed inside the former folder. Unchanged on purpose: package `cbbe3bbb`, `run_batch.bat`, manifest `tool`
 "CBBE3BBBConverter", output mod "CBBE 3BBB Auto Conversions", groups, profile names, `CBBE3BBB_HOME` /
 `CBBE3BBB_CONFIG_DIR` environment variables.
+
+## Accepted (2026-10-02)
+
+Directory migration **manually accepted** on the real PC: `T:\Fallout 4 Tools\CBBE3BBBConverter` no longer exists; the
+tool runs from `T:\Fallout 4 Tools\Fallout 4 Body & Physics Converter` (no junction/symlink). Smoke test from the new
+root: PASS (GUI, detection incl. MO2 profile Fix F, existing generated output recognised, build check 23/23 BUILD_OK,
+CLI help, body routes). The converter profile `Default` needed no path migration (it holds no path inside the tool
+folder). In PowerShell the launchers are called as `.\run_batch.bat` (normal PowerShell command resolution).

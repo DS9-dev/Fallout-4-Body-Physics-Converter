@@ -2,6 +2,13 @@
 
 ## 0.6.1 (stabilization: product folder rename, real-acceptance fixes, end-user README)
 
+**0.6.1 MANUAL ACCEPTANCE: PASS (real PC, 2026-10-02).** The folder was renamed to `T:\Fallout 4 Tools\Fallout 4 Body &
+Physics Converter` (old folder gone, no junction). From the new root: GUI title "Fallout 4 Body & Physics Converter
+0.6.1"; Fallout 4, MO2, MO2 profile Fix F, CBBE 3BBB, the enabled output mod and Outfit Studio 5.8.2 detected; Vtaw
+Wardrobe 4 analysed (38 projects: 23 existing generated conversions already compatible, 11 not needed, 4 cannot safely
+process); `verify-package-build` 23/23 BUILD_OK, both AUTO groups complete; `--help` and `body-routes` correct; README
+reviewed. Documentation follow-up: README notes the PowerShell `.\run_batch.bat` form.
+
 Real GUI acceptance on CP4, Vtaw Overalls, Utility Pack 1, Wardrobe 4/5/6 (RESEARCH §24). Conversion semantics and the
 strict validation are unchanged except for one proven defect:
 

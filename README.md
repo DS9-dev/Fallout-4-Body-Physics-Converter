@@ -244,6 +244,16 @@ run_batch.bat report-runtime-issue --profile Default --project "<project or gene
 run_batch.bat export-diagnostics   --profile Default [--batch <batch id>] [--out <zip>]
 ```
 
+**PowerShell:** when you run the launcher from the tool folder in PowerShell, prefix it with `.\` (PowerShell does not
+run programs from the current folder by name alone). This is normal PowerShell behaviour:
+
+```powershell
+.\run_batch.bat --help
+.\run_batch.bat body-routes
+```
+
+In the classic Command Prompt (`cmd.exe`) the plain `run_batch.bat …` form works.
+
 `--source-body` defaults to `auto` and `--target-body` to `cbbe_3bbb`. Choosing `fusion_girl` is refused before
 anything starts, because that route is not implemented. `convert-package` needs `--yes`; with `--no-commit` it
 converts and validates without installing. Run `run_batch.bat <command> --help` to see every option.

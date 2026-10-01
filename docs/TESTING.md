@@ -113,3 +113,17 @@ CLI body arguments, product name vs serialised identities.
 planned and converted — fails with the old stripping parser) and `tests/test_release.py` (one version source, clean
 title, '&'-safe folder-relative launchers, a full one-click run from a folder named "Fallout 4 Body & Physics
 Converter", profile tool-root migration, user messages).
+
+### 0.6.1 real-PC acceptance from the renamed root: PASS (2026-10-02)
+
+| Check | Result |
+| --- | --- |
+| `run_gui.bat` from `T:\Fallout 4 Tools\Fallout 4 Body & Physics Converter` | PASS — title "Fallout 4 Body & Physics Converter 0.6.1"; Fallout 4, MO2, MO2 profile Fix F, CBBE 3BBB, output mod (enabled), Outfit Studio 5.8.2 detected |
+| Analyze Vtaw Wardrobe 4 Bodyslide | PASS — 38 projects; 23 already compatible (existing generated conversions), 11 not needed, 4 cannot safely process |
+| `.\run_batch.bat verify-package-build --profile Default --package "Vtaw Wardrobe 4 Bodyslide"` | PASS — ENABLED, committed 23, BUILD_OK 23, both groups present, 0 missing members |
+| `.\run_batch.bat --help` | PASS — product name, 0.6.1, converter/MO2 profile distinction |
+| `.\run_batch.bat body-routes` | PASS — Fusion Girl NOT_IMPLEMENTED, BodyTalk/Male UNSUPPORTED |
+| README review | PASS |
+
+Automated suite at release: 363 passed, 4 skipped (GUI tests without PySide6 in the CI sandbox). No package
+conversion was rerun and the production output mod was not modified for this acceptance.
